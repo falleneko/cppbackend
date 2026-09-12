@@ -22,6 +22,37 @@ namespace http_handler {
         return {{ApiMethod::UNKNOWN, http::verb::unknown}, ""};
     }
 
+    json::object RequestHandler::SerializeRoad(const model::Road& road) {
+        json::object road_obj;
+        if (road.IsHorizontal()) {
+            road_obj.emplace("x1", road.GetEnd().x);
+        } else if (road.IsVertical()) {
+            road_obj.emplace("y1", road.GetEnd().y);
+        }
+        road_obj.emplace("x0", road.GetStart().x);
+        road_obj.emplace("y0", road.GetStart().y);
+        return road_obj;
+    }
+
+    json::object RequestHandler::SerializeBuilding(const model::Building& building) {
+        json::object building_obj;
+        building_obj.emplace("x", building.GetBounds().position.x);
+        building_obj.emplace("y", building.GetBounds().position.y);
+        building_obj.emplace("w", building.GetBounds().size.width);
+        building_obj.emplace("h", building.GetBounds().size.height);
+        return building_obj;
+    }
+
+    json::object RequestHandler::SerializeOffice(const model::Office& office) {
+        json::object office_obj;
+        office_obj.emplace("id", *office.GetId());
+        office_obj.emplace("x", office.GetPosition().x);
+        office_obj.emplace("y", office.GetPosition().y);
+        office_obj.emplace("offsetX", office.GetOffset().dx);
+        office_obj.emplace("offsetY", office.GetOffset().dy);
+        return office_obj;
+    }
+
     json::object RequestHandler::SerializeMap(const model::Map& map, const bool is_simple) {
         json::object res;
         res.emplace("id", *map.GetId());
@@ -32,36 +63,23 @@ namespace http_handler {
         auto roads = map.GetRoads();
         res["roads"] = json::array();
         for (const auto& road : roads) {
-            json::object road_obj;
-            if (road.IsHorizontal()) {
-                road_obj.emplace("x1", road.GetEnd().x);
-            } else if (road.IsVertical()) {
-                road_obj.emplace("y1", road.GetEnd().y);
-            }
-            road_obj.emplace("x0", road.GetStart().x);
-            road_obj.emplace("y0", road.GetStart().y);
-            res["roads"].as_array().emplace_back(std::move(road_obj));
+            res["roads"]
+                .as_array()
+                .emplace_back(std::move(SerializeRoad(road)));
         }
         auto buildings = map.GetBuildings();
         res["buildings"] = json::array();
         for (const auto& building : buildings) {
-            json::object building_obj;
-            building_obj.emplace("x", building.GetBounds().position.x);
-            building_obj.emplace("y", building.GetBounds().position.y);
-            building_obj.emplace("w", building.GetBounds().size.width);
-            building_obj.emplace("h", building.GetBounds().size.height);
-            res["buildings"].as_array().emplace_back(std::move(building_obj));
+            res["buildings"]
+                .as_array()
+                .emplace_back(std::move(SerializeBuilding(building)));
         }
         auto offices = map.GetOffices();
         res["offices"] = json::array();
         for (const auto& office : offices) {
-            json::object office_obj;
-            office_obj.emplace("id", *office.GetId());
-            office_obj.emplace("x", office.GetPosition().x);
-            office_obj.emplace("y", office.GetPosition().y);
-            office_obj.emplace("offsetX", office.GetOffset().dx);
-            office_obj.emplace("offsetY", office.GetOffset().dy);
-            res["offices"].as_array().emplace_back(std::move(office_obj));
+            res["offices"]
+                .as_array()
+                .emplace_back(std::move(SerializeOffice(office)));
         }
         return res;
     }

@@ -145,7 +145,10 @@ private:
 
     HandlerResult HandleGetMaps(ApiMethod method);
     HandlerResult HandleGetMap(ApiMethod method, std::string_view map_id);
-    json::object SerializeMap(const model::Map& map, const bool simple);
+    static json::object SerializeRoad(const model::Road& road);
+    static json::object SerializeBuilding(const model::Building& building);
+    static json::object SerializeOffice(const model::Office& office);
+    static json::object SerializeMap(const model::Map& map, const bool simple);
 
     template <typename Body, typename Allocator, typename Send>
     void SendResponse(http::request<Body, http::basic_fields<Allocator>>& req, Send& send, const HandlerResult& body, http::status status = http::status::ok) {
