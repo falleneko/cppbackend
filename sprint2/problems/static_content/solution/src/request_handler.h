@@ -162,14 +162,19 @@ private:
     template <typename Body, typename Allocator, typename Send>
     void SendFileResponse(http::request<Body, http::basic_fields<Allocator>>& req, Send& send, const std::string& file_path) {
         fs::path file_path_obj{file_path};
-        std::string detected_type{"text/plain"};
+
+        if (fs::is_directory(file_path_obj)) {
+            file_path_obj = file_path_obj / "index.html";
+        }
+
+        std::string detected_type{"application/octet-stream"};
         std::string file_ext{file_path_obj.extension().string()};
         if (mime_types_.contains(file_ext)) {
             detected_type = mime_types_.at(file_ext);
         }
-        
-        http::file_body::value_type file;
-        if (sys::error_code ec; file.open(file_path.c_str(), beast::file_mode::read, ec), ec) {
+
+        http::file_body::value_type file;        
+        if (sys::error_code ec; file.open(file_path_obj.c_str(), beast::file_mode::read, ec), ec) {
             throw NotFoundException();
         }
         SendResponse<http::file_body>(req, send, file, http::status::ok, detected_type);
