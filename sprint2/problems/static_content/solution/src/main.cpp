@@ -28,13 +28,14 @@ void RunWorkers(unsigned n, const Fn& fn) {
 }  // namespace
 
 int main(int argc, const char* argv[]) {
-    if (argc != 2) {
-        std::cerr << "Usage: game_server <game-config-json>"sv << std::endl;
+    if (argc != 3) {
+        std::cerr << "Usage: game_server <game-config-json> <staticdir path>"sv << std::endl;
         return EXIT_FAILURE;
     }
     try {
         // 1. Загружаем карту из файла и построить модель игры
         model::Game game = json_loader::LoadGame(argv[1]);
+        std::string static_dir{argv[2]};
 
         // 2. Инициализируем io_context
         const unsigned num_threads = std::thread::hardware_concurrency();
@@ -43,7 +44,7 @@ int main(int argc, const char* argv[]) {
         // 3. Добавляем асинхронный обработчик сигналов SIGINT и SIGTERM
 
         // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
-        http_handler::RequestHandler handler{game};
+        http_handler::RequestHandler handler{game, std::move(static_dir)};
 
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
         

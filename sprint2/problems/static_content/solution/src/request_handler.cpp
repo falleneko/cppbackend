@@ -11,8 +11,29 @@ namespace http_handler {
         {R"(v1\/maps\/(.*[^\/])$)", {RequestHandler::ApiMethod::GET_MAP, http::verb::get}},
     };
 
-    std::tuple<RequestHandler::AllowedHttpMethods, std::string> RequestHandler::GetApiMethod(std::string url) {
-        url = url.substr(API_URL.length(), url.length());
+    const std::unordered_map<std::string, std::string> RequestHandler::mime_types_ = {
+        {".htm", "text/html"},
+        {".html", "text/html"},
+        {".css", "text/css"},
+        {".txt", "text/plain"},
+        {".js", "text/javascript"},
+        {".json", "application/json"},
+        {".xml", "application/xml"},
+        {".png", "image/png"},
+        {".jpg", "image/jpeg"},
+        {".jpe", "image/jpeg"},
+        {".jpeg", "image/jpeg"},
+        {".gif", "image/gif"},
+        {".bmp", "image/bmp"},
+        {".ico", "image/vnd.microsoft.icon"},
+        {".tiff", "image/tiff"},
+        {".tif", "image/tiff"},
+        {".svg", "image/svg+xml"},
+        {".svgz", "image/svg+xml"},
+        {".mp3", "audio/mpeg"},
+    };
+
+    std::tuple<RequestHandler::AllowedHttpMethods, std::string> RequestHandler::GetApiMethod(const std::string& url) {
         for (const auto& [pattern, method] : api_methods_) {
             std::smatch matches;
             if (std::regex_match(url, matches, std::regex(pattern))) {
@@ -101,6 +122,20 @@ namespace http_handler {
             throw MapNotFoundException();
         }
         return SerializeMap(*map, false);
+    }
+
+    bool RequestHandler::IsSubPath(fs::path path, fs::path base) {
+        // Приводим оба пути к каноничному виду (без . и ..)
+        path = fs::weakly_canonical(path);
+        base = fs::weakly_canonical(base);
+
+        // Проверяем, что все компоненты base содержатся внутри path
+        for (auto b = base.begin(), p = path.begin(); b != base.end(); ++b, ++p) {
+            if (p == path.end() || *p != *b) {
+                return false;
+            }
+        }
+        return true;
     }
 
 }  // namespace http_handler

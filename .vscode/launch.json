@@ -44,6 +44,30 @@
                 }
             ],
             "preLaunchTask": "CMake: prepare active executable and choose input file"
+        },
+        {
+            "name": "CMake: debug active subproject with selected file and directory",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/.vscode/cmake-debug-target",
+            "args": [
+                "${workspaceFolder}/.vscode/cmake-debug-input",
+                "${workspaceFolder}/.vscode/cmake-debug-input-dir"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/.vscode/cmake-debug-cwd",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable GDB pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "CMake: choose input directory"
         }
     ]
 }

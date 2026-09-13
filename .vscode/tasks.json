@@ -95,7 +95,7 @@
             "command": "bash",
             "args": [
                 "-c",
-                "set -euo pipefail; source_dir=\"$1\"; workspace_dir=\"$2\"; while [[ \"$(basename \"$source_dir\")\" != \"src\" && \"$source_dir\" != \"/\" ]]; do source_dir=\"$(dirname \"$source_dir\")\"; done; if [[ \"$(basename \"$source_dir\")\" != \"src\" ]]; then echo \"Active file is not inside a src directory.\" >&2; exit 1; fi; project_dir=\"$(realpath \"$source_dir/..\")\"; input_file=\"$(zenity --file-selection --title='Choose the input file' --filename=\"$project_dir/\")\"; if [[ -z \"$input_file\" || ! -f \"$input_file\" ]]; then echo \"Input file was not selected.\" >&2; exit 1; fi; ln -sfn \"$(realpath \"$input_file\")\" \"$workspace_dir/.vscode/cmake-debug-input\"; echo \"Input file: $input_file\"",
+                "set -euo pipefail; source_dir=\"$1\"; workspace_dir=\"$2\"; while [[ \"$(basename \"$source_dir\")\" != \"src\" && \"$source_dir\" != \"/\" ]]; do source_dir=\"$(dirname \"$source_dir\")\"; done; if [[ \"$(basename \"$source_dir\")\" != \"src\" ]]; then echo \"Active file is not inside a src directory.\" >&2; exit 1; fi; project_dir=\"$(realpath \"$source_dir/..\")\"; input_file=\"$(zenity --file-selection --title='Choose the input file' --filename=\"$project_dir/\")\"; if [[ -z \"$input_file\" || ! -f \"$input_file\" ]]; then echo \"Input file was not selected.\" >&2; exit 1; fi; input_file=\"$(realpath \"$input_file\")\"; ln -sfn \"$input_file\" \"$workspace_dir/.vscode/cmake-debug-input\"; echo \"Input file: $input_file\"",
                 "_",
                 "${fileDirname}",
                 "${workspaceFolder}"
@@ -105,6 +105,40 @@
                 "CMake: prepare active executable for debugging"
             ],
             "hide": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: choose input directory",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c",
+                "set -euo pipefail; source_dir=\"$1\"; workspace_dir=\"$2\"; while [[ \"$(basename \"$source_dir\")\" != \"src\" && \"$source_dir\" != \"/\" ]]; do source_dir=\"$(dirname \"$source_dir\")\"; done; if [[ \"$(basename \"$source_dir\")\" != \"src\" ]]; then echo \"Active file is not inside a src directory.\" >&2; exit 1; fi; project_dir=\"$(realpath \"$source_dir/..\")\"; input_dir=\"$(zenity --file-selection --directory --title='Choose the input directory' --filename=\"$project_dir/\")\"; if [[ -z \"$input_dir\" || ! -d \"$input_dir\" ]]; then echo \"Input directory was not selected.\" >&2; exit 1; fi; input_dir=\"$(realpath \"$input_dir\")\"; ln -sfn \"$input_dir\" \"$workspace_dir/.vscode/cmake-debug-input-dir\"; echo \"Input directory: $input_dir\"",
+                "_",
+                "${fileDirname}",
+                "${workspaceFolder}"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "CMake: prepare active executable and choose input file"
+            ],
+            "hide": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: run active subproject with selected file and directory",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c",
+                "set -euo pipefail; workspace_dir=\"$1\"; target=\"$(realpath \"$workspace_dir/.vscode/cmake-debug-target\")\"; run_dir=\"$(realpath \"$workspace_dir/.vscode/cmake-debug-cwd\")\"; input_file=\"$(realpath \"$workspace_dir/.vscode/cmake-debug-input\")\"; input_dir=\"$(realpath \"$workspace_dir/.vscode/cmake-debug-input-dir\")\"; cd \"$run_dir\"; exec \"$target\" \"$input_file\" \"$input_dir\"",
+                "_",
+                "${workspaceFolder}"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "CMake: choose input directory"
+            ],
             "problemMatcher": []
         }
     ]
