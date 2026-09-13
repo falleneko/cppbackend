@@ -1,0 +1,111 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Conan: install dependencies for active conanfile",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Conan: install dependencies",
+                "CMake: configure Release"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Conan: install dependencies",
+            "type": "process",
+            "command": "conan",
+            "args": [
+                "install",
+                "${file}",
+                "--output-folder=${fileDirname}/build",
+                "--settings=build_type=Release",
+                "--settings=compiler.cppstd=20",
+                "--build=missing"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "hide": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: configure Release",
+            "type": "process",
+            "command": "cmake",
+            "args": [
+                "..",
+                "-DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake",
+                "-DCMAKE_BUILD_TYPE=Release"
+            ],
+            "options": {
+                "cwd": "${fileDirname}/build"
+            },
+            "hide": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: build from active file in src",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c",
+                "source_dir=\"$1\"; while [[ \"$(basename \"$source_dir\")\" != \"src\" && \"$source_dir\" != \"/\" ]]; do source_dir=\"$(dirname \"$source_dir\")\"; done; if [[ \"$(basename \"$source_dir\")\" != \"src\" ]]; then echo \"Active file is not inside a src directory.\" >&2; exit 1; fi; cmake --build \"$source_dir/../build\"",
+                "_",
+                "${fileDirname}"
+            ],
+            "group": "build",
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "CMake: configure Debug from active file in src",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c",
+                "set -euo pipefail; source_dir=\"$1\"; while [[ \"$(basename \"$source_dir\")\" != \"src\" && \"$source_dir\" != \"/\" ]]; do source_dir=\"$(dirname \"$source_dir\")\"; done; if [[ \"$(basename \"$source_dir\")\" != \"src\" ]]; then echo \"Active file is not inside a src directory.\" >&2; exit 1; fi; project_dir=\"$(realpath \"$source_dir/..\")\"; build_dir=\"$project_dir/build\"; toolchain=\"$build_dir/conan_toolchain.cmake\"; if [[ ! -f \"$toolchain\" ]]; then echo \"$toolchain not found. Run the Conan install task first.\" >&2; exit 1; fi; cmake -S \"$project_dir\" -B \"$build_dir\" -DCMAKE_TOOLCHAIN_FILE=\"$toolchain\" -DCMAKE_BUILD_TYPE=Debug",
+                "_",
+                "${fileDirname}"
+            ],
+            "hide": true,
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "CMake: prepare active executable for debugging",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c",
+                "set -euo pipefail; source_dir=\"$1\"; workspace_dir=\"$2\"; while [[ \"$(basename \"$source_dir\")\" != \"src\" && \"$source_dir\" != \"/\" ]]; do source_dir=\"$(dirname \"$source_dir\")\"; done; if [[ \"$(basename \"$source_dir\")\" != \"src\" ]]; then echo \"Active file is not inside a src directory.\" >&2; exit 1; fi; build_dir=\"$(realpath \"$source_dir/../build\")\"; mapfile -d '' executables < <(find \"$build_dir\" -maxdepth 1 -type f -executable -print0); if (( ${#executables[@]} == 0 )); then echo \"No executable found in $build_dir.\" >&2; exit 1; fi; target=\"\"; for executable in \"${executables[@]}\"; do name=\"$(basename \"$executable\")\"; if [[ ! \"$name\" =~ (^|[-_])(test|tests)([-_]|$) ]]; then if [[ -n \"$target\" ]]; then echo \"Several executable targets found in $build_dir; cannot choose one automatically.\" >&2; printf '  %s\\n' \"${executables[@]}\" >&2; exit 1; fi; target=\"$executable\"; fi; done; if [[ -z \"$target\" ]]; then if (( ${#executables[@]} != 1 )); then echo \"Several test executables found in $build_dir; cannot choose one automatically.\" >&2; printf '  %s\\n' \"${executables[@]}\" >&2; exit 1; fi; target=\"${executables[0]}\"; fi; ln -sfn \"$(realpath \"$target\")\" \"$workspace_dir/.vscode/cmake-debug-target\"; ln -sfn \"$build_dir\" \"$workspace_dir/.vscode/cmake-debug-cwd\"; echo \"Debug target: $target\"",
+                "_",
+                "${fileDirname}",
+                "${workspaceFolder}"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "CMake: configure Debug from active file in src",
+                "CMake: build from active file in src"
+            ],
+            "hide": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: prepare active executable and choose input file",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c",
+                "set -euo pipefail; source_dir=\"$1\"; workspace_dir=\"$2\"; while [[ \"$(basename \"$source_dir\")\" != \"src\" && \"$source_dir\" != \"/\" ]]; do source_dir=\"$(dirname \"$source_dir\")\"; done; if [[ \"$(basename \"$source_dir\")\" != \"src\" ]]; then echo \"Active file is not inside a src directory.\" >&2; exit 1; fi; project_dir=\"$(realpath \"$source_dir/..\")\"; input_file=\"$(zenity --file-selection --title='Choose the input file' --filename=\"$project_dir/\")\"; if [[ -z \"$input_file\" || ! -f \"$input_file\" ]]; then echo \"Input file was not selected.\" >&2; exit 1; fi; ln -sfn \"$(realpath \"$input_file\")\" \"$workspace_dir/.vscode/cmake-debug-input\"; echo \"Input file: $input_file\"",
+                "_",
+                "${fileDirname}",
+                "${workspaceFolder}"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "CMake: prepare active executable for debugging"
+            ],
+            "hide": true,
+            "problemMatcher": []
+        }
+    ]
+}

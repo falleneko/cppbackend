@@ -1,0 +1,49 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "CMake: debug active subproject",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/.vscode/cmake-debug-target",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/.vscode/cmake-debug-cwd",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable GDB pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "CMake: prepare active executable for debugging"
+        },
+        {
+            "name": "CMake: debug active subproject with input file",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/.vscode/cmake-debug-target",
+            "args": [
+                "${workspaceFolder}/.vscode/cmake-debug-input"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/.vscode/cmake-debug-cwd",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable GDB pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "CMake: prepare active executable and choose input file"
+        }
+    ]
+}
