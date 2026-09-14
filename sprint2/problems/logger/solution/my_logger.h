@@ -56,17 +56,8 @@ class Logger {
     void Write(const std::string& message) {
         const auto now = GetTime();
         const auto filename = GetFileTimeStamp(now);
-
-        if (!file_.is_open() || filename != current_filename_) {
-            if (file_.is_open()) {
-                file_.close();
-            }
-            file_.clear();
-            file_.open(filename, std::ios::app);
-            current_filename_ = filename;
-        }
-
-        file_ << GetTimeStamp(now) << ": " << message << std::endl;
+        std::ofstream file(filename, std::ios::app);
+        file << GetTimeStamp(now) << ": " << message << std::endl;
     }
 
     Logger()
@@ -110,6 +101,4 @@ private:
     Strand task_strand_;
 
     std::optional<std::chrono::system_clock::time_point> manual_ts_;
-    std::ofstream file_;
-    std::string current_filename_;
 };
