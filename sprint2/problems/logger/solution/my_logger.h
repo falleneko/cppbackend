@@ -1,27 +1,22 @@
 #pragma once
 
-#include <boost/asio/post.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/asio/thread_pool.hpp>
-
 #include <chrono>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 
 using namespace std::literals;
 
 #define LOG(...) Logger::GetInstance().Log(__VA_ARGS__)
 
-namespace net = boost::asio;
-
 class Logger {
     using TimePoint = std::chrono::system_clock::time_point;
-    using Strand = net::strand<net::thread_pool::executor_type>;
 
     auto GetTime() const {
         if (manual_ts_) {
@@ -60,13 +55,7 @@ class Logger {
         file << GetTimeStamp(now) << ": " << message << std::endl;
     }
 
-    Logger()
-        : task_strand_(net::make_strand(task_pool_)) {
-    }
-
-    ~Logger() {
-        task_pool_.join();
-    }
+    Logger() = default;
 
     Logger(const Logger&) = delete;
     Logger& operator=(const Logger&) = delete;
@@ -82,23 +71,16 @@ public:
         std::ostringstream message;
         (message << ... << args);
 
-        net::post(
-            task_strand_,
-            [this, text = std::move(message).str()] {
-                Write(text);
-            }
-        );
+        std::lock_guard lock(mutex_);
+        Write(std::move(message).str());
     }
 
     void SetTimestamp(std::chrono::system_clock::time_point ts) {
-        net::post(task_strand_, [this, ts] {
-            manual_ts_ = ts;
-        });
+        std::lock_guard lock(mutex_);
+        manual_ts_ = ts;
     }
 
 private:
-    net::thread_pool task_pool_{1};
-    Strand task_strand_;
-
+    std::mutex mutex_;
     std::optional<std::chrono::system_clock::time_point> manual_ts_;
 };
