@@ -12,7 +12,9 @@ RUN sed -i '/security/d' /etc/apt/sources.list && \
 # Запуск conan как раньше
 COPY conanfile.txt /app/
 RUN mkdir /app/build && cd /app/build && \
-    conan install .. --build=missing
+    conan install .. --build=missing \
+      -s build_type=Release \
+      -s compiler.libcxx=libstdc++11
 
 # Папка data больше не нужна
 COPY ./src /app/src
