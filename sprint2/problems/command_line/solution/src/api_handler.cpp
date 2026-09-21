@@ -149,37 +149,37 @@ app::Token ApiHandler::ParseAuthorization(std::string_view authorization) {
 json::object ApiHandler::SerializeRoad(const model::Road& road) {
     json::object result;
     if (road.IsHorizontal()) {
-        result.emplace("x1", road.GetEnd().x);
+        result.emplace(DC::END_X, road.GetEnd().x);
     } else {
-        result.emplace("y1", road.GetEnd().y);
+        result.emplace(DC::END_Y, road.GetEnd().y);
     }
-    result.emplace("x0", road.GetStart().x);
-    result.emplace("y0", road.GetStart().y);
+    result.emplace(DC::START_X, road.GetStart().x);
+    result.emplace(DC::START_Y, road.GetStart().y);
     return result;
 }
 
 json::object ApiHandler::SerializeBuilding(const model::Building& building) {
     const model::Rectangle& bounds = building.GetBounds();
     return {
-        {"x", bounds.position.x},
-        {"y", bounds.position.y},
-        {"w", bounds.size.width},
-        {"h", bounds.size.height},
+        {DC::X, bounds.position.x},
+        {DC::Y, bounds.position.y},
+        {DC::WIDTH, bounds.size.width},
+        {DC::HEIGHT, bounds.size.height},
     };
 }
 
 json::object ApiHandler::SerializeOffice(const model::Office& office) {
     return {
         {"id", *office.GetId()},
-        {"x", office.GetPosition().x},
-        {"y", office.GetPosition().y},
-        {"offsetX", office.GetOffset().dx},
-        {"offsetY", office.GetOffset().dy},
+        {DC::X, office.GetPosition().x},
+        {DC::Y, office.GetPosition().y},
+        {DC::OFFSET_X, office.GetOffset().dx},
+        {DC::OFFSET_Y, office.GetOffset().dy},
     };
 }
 
 json::object ApiHandler::SerializeMap(const model::Map& map, bool simple) {
-    json::object result{{"id", *map.GetId()}, {"name", map.GetName()}};
+    json::object result{{"id", *map.GetId()}, {DC::MAP_NAME, map.GetName()}};
     if (simple) {
         return result;
     }
@@ -188,19 +188,19 @@ json::object ApiHandler::SerializeMap(const model::Map& map, bool simple) {
     for (const model::Road& road : map.GetRoads()) {
         roads.emplace_back(SerializeRoad(road));
     }
-    result.emplace("roads", std::move(roads));
+    result.emplace(DC::ROAD_BLOCK, std::move(roads));
 
     json::array buildings;
     for (const model::Building& building : map.GetBuildings()) {
         buildings.emplace_back(SerializeBuilding(building));
     }
-    result.emplace("buildings", std::move(buildings));
+    result.emplace(DC::BUILDING_BLOCK, std::move(buildings));
 
     json::array offices;
     for (const model::Office& office : map.GetOffices()) {
         offices.emplace_back(SerializeOffice(office));
     }
-    result.emplace("offices", std::move(offices));
+    result.emplace(DC::OFFICE_BLOCK, std::move(offices));
     return result;
 }
 

@@ -19,6 +19,7 @@ namespace http_handler {
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace json = boost::json;
+namespace DC = model::DATA_CONST;
 
 using namespace std::literals;
 

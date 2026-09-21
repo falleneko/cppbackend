@@ -14,6 +14,26 @@ namespace model {
 using Dimension = int;
 using Coord = Dimension;
 
+namespace DATA_CONST {
+extern const char* START_X;
+extern const char* START_Y;
+extern const char* END_X;
+extern const char* END_Y;
+extern const char* OFFSET_X;
+extern const char* OFFSET_Y;
+extern const char* WIDTH;
+extern const char* HEIGHT;
+extern const char* X;
+extern const char* Y;
+extern const char* MAP_BLOCK;
+extern const char* OFFICE_BLOCK;
+extern const char* ROAD_BLOCK;
+extern const char* BUILDING_BLOCK;
+extern const char* DEF_DOG_SPEED;
+extern const char* DOG_SPEED;
+extern const char* MAP_NAME;
+} // namespace DATA_CONST
+
 struct Point {
     Coord x, y;
 };

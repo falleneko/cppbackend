@@ -8,6 +8,26 @@
 namespace model {
 using namespace std::literals;
 
+namespace DATA_CONST {
+    const char* START_X = "x0";
+    const char* START_Y = "y0";
+    const char* END_X = "x1";
+    const char* END_Y = "y1";
+    const char* OFFSET_X = "offsetX";
+    const char* OFFSET_Y = "offsetY";
+    const char* WIDTH = "w";
+    const char* HEIGHT = "h";
+    const char* X = "x";
+    const char* Y = "y";
+    const char* MAP_BLOCK = "maps";
+    const char* OFFICE_BLOCK = "offices";
+    const char* ROAD_BLOCK = "roads";
+    const char* BUILDING_BLOCK = "buildings";
+    const char* DEF_DOG_SPEED = "defaultDogSpeed";
+    const char* DOG_SPEED = "dogSpeed";
+    const char* MAP_NAME = "name";
+}
+
 namespace {
 
 constexpr double ROAD_HALF_WIDTH = 0.4;
