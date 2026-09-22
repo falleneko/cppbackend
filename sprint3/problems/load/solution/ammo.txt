@@ -1,0 +1,104 @@
+65 api_v1_maps
+GET /api/v1/maps HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+70 api_v1_maps_map1
+GET /api/v1/maps/map1 HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+70 api_v1_maps_town
+GET /api/v1/maps/town HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+54 home
+GET / HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+65 api_v1_maps
+GET /api/v1/maps HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+70 api_v1_maps_map1
+GET /api/v1/maps/map1 HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+70 api_v1_maps_town
+GET /api/v1/maps/town HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+54 home
+GET / HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+65 api_v1_maps
+GET /api/v1/maps HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+70 api_v1_maps_map1
+GET /api/v1/maps/map1 HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+70 api_v1_maps_town
+GET /api/v1/maps/town HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+54 home
+GET / HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+65 api_v1_maps
+GET /api/v1/maps HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+70 api_v1_maps_map1
+GET /api/v1/maps/map1 HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+70 api_v1_maps_town
+GET /api/v1/maps/town HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+54 home
+GET / HTTP/1.1
+Host: cppserver
+Connection: close
+
+
+164 join_game
+POST /api/v1/game/join HTTP/1.1
+Host: cppserver
+Connection: close
+Content-Type: application/json
+Content-Length: 41
+
+{"userName":"Load Tester","mapId":"map1"}

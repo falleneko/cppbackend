@@ -1,0 +1,14 @@
+overload:
+  enabled: false
+phantom:
+  address: cppserver:8080
+  ammofile: ammo.txt
+  ammo_type: phantom
+  load_profile:
+    load_type: rps
+    schedule: const(5,10s)
+  ssl: false
+console:
+  enabled: false
+telegraf:
+  enabled: false
