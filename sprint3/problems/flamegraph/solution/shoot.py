@@ -69,11 +69,11 @@ def record(server):
 
 
 def stop_recording(perf):
-    if perf.poll() is None:
-        # perf writes the trailer and closes perf.data when interrupted.
+    interrupted = perf.poll() is None
+    if interrupted:
         perf.send_signal(signal.SIGINT)
     return_code = perf.wait()
-    if return_code:
+    if return_code and not (interrupted and return_code == -signal.SIGINT):
         raise subprocess.CalledProcessError(return_code, perf.args)
 
 
