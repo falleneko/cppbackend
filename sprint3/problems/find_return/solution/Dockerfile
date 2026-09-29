@@ -22,6 +22,15 @@ COPY CMakeLists.txt /app/
 
 RUN cd /app/build && \
     cmake -DCMAKE_BUILD_TYPE=Release .. && \
-    cmake --build . && ls
+    cmake --build .
 
-ENTRYPOINT ["/app/build/collision_detection_tests"]
+FROM debian:bookworm-slim AS run
+
+RUN groupadd -r www && useradd -r -g www www
+USER www
+
+COPY --from=build /app/build/game_server /app/
+COPY ./data /app/data
+COPY ./static /app/static
+
+ENTRYPOINT ["/app/game_server", "--config-file", "/app/data/config.json", "--www-root", "/app/static"]

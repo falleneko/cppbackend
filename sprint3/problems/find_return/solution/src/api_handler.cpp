@@ -288,12 +288,21 @@ ApiHandler::HandlerResult ApiHandler::HandleGetGameState(
         const model::Dog& dog = map_player->GetDog();
         const model::Position position = dog.GetPosition();
         const model::Speed speed = dog.GetSpeed();
+        json::array bag;
+        bag.reserve(map_player->GetBag().size());
+        for (const app::LostObject& object : map_player->GetBag()) {
+            bag.emplace_back(json::object{
+                {"id", object.id},
+                {"type", object.type},
+            });
+        }
         players.emplace(
             std::to_string(*map_player->GetId()),
             json::object{
                 {"pos", json::array{position.x, position.y}},
                 {"speed", json::array{speed.x, speed.y}},
                 {"dir", SerializeDirection(dog.GetDirection())},
+                {"bag", std::move(bag)},
             });
     }
     json::object lost_objects;

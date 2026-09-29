@@ -31,6 +31,8 @@ extern const char* ROAD_BLOCK;
 extern const char* BUILDING_BLOCK;
 extern const char* DEF_DOG_SPEED;
 extern const char* DOG_SPEED;
+extern const char* DEFAULT_BAG_CAPACITY;
+extern const char* BAG_CAPACITY;
 extern const char* MAP_NAME;
 } // namespace DATA_CONST
 
@@ -123,7 +125,8 @@ public:
     using Buildings = std::vector<Building>;
     using Offices = std::vector<Office>;
 
-    Map(Id id, std::string name, double dog_speed = 1.0) noexcept;
+    Map(Id id, std::string name, double dog_speed = 1.0,
+        std::size_t bag_capacity = 3) noexcept;
 
     const Id& GetId() const noexcept;
     const std::string& GetName() const noexcept;
@@ -131,6 +134,7 @@ public:
     const Roads& GetRoads() const noexcept;
     const Offices& GetOffices() const noexcept;
     double GetDogSpeed() const noexcept;
+    std::size_t GetBagCapacity() const noexcept;
     std::size_t GetLootTypeCount() const noexcept;
     void SetLootTypeCount(std::size_t count) noexcept;
     Position GetRandomRoadPosition() const;
@@ -148,6 +152,7 @@ private:
     Id id_;
     std::string name_;
     double dog_speed_ = 1.0;
+    std::size_t bag_capacity_ = 3;
     std::size_t loot_type_count_ = 0;
     Roads roads_;
     Buildings buildings_;

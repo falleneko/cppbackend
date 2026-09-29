@@ -1,5 +1,7 @@
 #include "app.h"
 
+#include "collision_detector.h"
+
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
@@ -9,10 +11,61 @@ namespace app {
 
 namespace {
 
+constexpr double PLAYER_RADIUS = 0.3;
+constexpr double LOST_OBJECT_RADIUS = 0.0;
+constexpr double OFFICE_RADIUS = 0.25;
+
 std::mt19937_64::result_type GenerateSeed(std::random_device& random_device) {
     std::uniform_int_distribution<std::mt19937_64::result_type> distribution;
     return distribution(random_device);
 }
+
+geom::Point2D ToPoint(model::Position position) noexcept {
+    return {position.x, position.y};
+}
+
+geom::Point2D ToPoint(model::Point point) noexcept {
+    return {static_cast<double>(point.x), static_cast<double>(point.y)};
+}
+
+class SessionCollisionProvider final
+    : public collision_detector::ItemGathererProvider {
+public:
+    SessionCollisionProvider(const std::vector<LostObject>& lost_objects,
+                             const model::Map::Offices& offices,
+                             const std::vector<Player*>& players) noexcept
+        : lost_objects_{lost_objects}
+        , offices_{offices}
+        , players_{players} {
+    }
+
+    std::size_t ItemsCount() const override {
+        return lost_objects_.size() + offices_.size();
+    }
+
+    collision_detector::Item GetItem(std::size_t index) const override {
+        if (index < lost_objects_.size()) {
+            return {ToPoint(lost_objects_.at(index).position), LOST_OBJECT_RADIUS};
+        }
+        return {ToPoint(offices_.at(index - lost_objects_.size()).GetPosition()),
+                OFFICE_RADIUS};
+    }
+
+    std::size_t GatherersCount() const override {
+        return players_.size();
+    }
+
+    collision_detector::Gatherer GetGatherer(std::size_t index) const override {
+        const Player& player = *players_.at(index);
+        return {ToPoint(player.GetPreviousPosition()),
+                ToPoint(player.GetDog().GetPosition()), PLAYER_RADIUS};
+    }
+
+private:
+    const std::vector<LostObject>& lost_objects_;
+    const model::Map::Offices& offices_;
+    const std::vector<Player*>& players_;
+};
 
 }  // namespace
 
@@ -20,7 +73,8 @@ Player::Player(Id id, std::string dog_name, model::Position dog_position,
                std::shared_ptr<const model::Map> map)
     : id_{id}
     , dog_{model::Dog::Id{*id}, std::move(dog_name), dog_position}
-    , map_{std::move(map)} {
+    , map_{std::move(map)}
+    , previous_position_{dog_position} {
 }
 
 const Player::Id& Player::GetId() const noexcept {
@@ -35,6 +89,14 @@ const model::Map& Player::GetMap() const noexcept {
     return *map_;
 }
 
+model::Position Player::GetPreviousPosition() const noexcept {
+    return previous_position_;
+}
+
+const std::vector<LostObject>& Player::GetBag() const noexcept {
+    return bag_;
+}
+
 void Player::Move(model::Direction direction) noexcept {
     dog_.SetMovement(direction, map_->GetDogSpeed());
 }
@@ -44,7 +106,20 @@ void Player::Stop() noexcept {
 }
 
 void Player::Tick(std::chrono::milliseconds time_delta) noexcept {
+    previous_position_ = dog_.GetPosition();
     dog_.Update(time_delta, *map_);
+}
+
+bool Player::TryAddToBag(const LostObject& object) {
+    if (bag_.size() >= map_->GetBagCapacity()) {
+        return false;
+    }
+    bag_.push_back(object);
+    return true;
+}
+
+void Player::ReturnLoot() noexcept {
+    bag_.clear();
 }
 
 Player& Players::Add(std::string dog_name,
@@ -118,9 +193,40 @@ GameSession::GameSession(std::shared_ptr<const model::Map> map,
     , loot_generator_{config.period, config.probability} {
 }
 
-void GameSession::Tick(std::chrono::milliseconds time_delta, unsigned looter_count) {
+void GameSession::Tick(std::chrono::milliseconds time_delta,
+                       const std::vector<Player*>& players) {
+    const std::size_t lost_object_count = lost_objects_.size();
+    const SessionCollisionProvider collision_provider{
+        lost_objects_, map_->GetOffices(), players};
+    const auto events = collision_detector::FindGatherEvents(collision_provider);
+    std::vector<bool> collected(lost_object_count, false);
+
+    for (const auto& event : events) {
+        Player& player = *players.at(event.gatherer_id);
+        if (event.item_id < lost_object_count) {
+            if (!collected[event.item_id]
+                && player.TryAddToBag(lost_objects_.at(event.item_id))) {
+                collected[event.item_id] = true;
+            }
+        } else {
+            player.ReturnLoot();
+        }
+    }
+
+    if (lost_object_count != 0) {
+        std::vector<LostObject> remaining_objects;
+        remaining_objects.reserve(lost_object_count);
+        for (std::size_t index = 0; index < lost_object_count; ++index) {
+            if (!collected[index]) {
+                remaining_objects.push_back(std::move(lost_objects_[index]));
+            }
+        }
+        lost_objects_ = std::move(remaining_objects);
+    }
+
     const unsigned count = loot_generator_.Generate(
-        time_delta, static_cast<unsigned>(lost_objects_.size()), looter_count);
+        time_delta, static_cast<unsigned>(lost_objects_.size()),
+        static_cast<unsigned>(players.size()));
     if (count == 0 || map_->GetRoads().empty() || map_->GetLootTypeCount() == 0) {
         return;
     }
@@ -186,8 +292,7 @@ const std::vector<LostObject>& Application::GetLostObjectsOnMap(
 void Application::Tick(std::chrono::milliseconds time_delta) {
     players_.Tick(time_delta);
     for (auto& [map_id, session] : sessions_) {
-        session->Tick(time_delta,
-            static_cast<unsigned>(players_.GetPlayersOnMap(map_id).size()));
+        session->Tick(time_delta, players_.GetPlayersOnMap(map_id));
     }
 }
 

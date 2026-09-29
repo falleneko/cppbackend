@@ -40,6 +40,9 @@ model::Game LoadGame(const std::filesystem::path& json_path,
     const double default_dog_speed = config.contains(DC::DEF_DOG_SPEED)
         ? json::value_to<double>(config.at(DC::DEF_DOG_SPEED))
         : 1.0;
+    const std::size_t default_bag_capacity = config.contains(DC::DEFAULT_BAG_CAPACITY)
+        ? json::value_to<std::size_t>(config.at(DC::DEFAULT_BAG_CAPACITY))
+        : 3;
 
     const auto& loot_config = config.at("lootGeneratorConfig").as_object();
     const auto period = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -55,7 +58,10 @@ model::Game LoadGame(const std::filesystem::path& json_path,
             json::value_to<std::string>(obj.at(DC::MAP_NAME)),
             obj.contains(DC::DOG_SPEED)
                 ? json::value_to<double>(obj.at(DC::DOG_SPEED))
-                : default_dog_speed
+                : default_dog_speed,
+            obj.contains(DC::BAG_CAPACITY)
+                ? json::value_to<std::size_t>(obj.at(DC::BAG_CAPACITY))
+                : default_bag_capacity
         };
 
         const json::array& map_loot_types = obj.at("lootTypes").as_array();

@@ -25,6 +25,8 @@ namespace DATA_CONST {
     const char* BUILDING_BLOCK = "buildings";
     const char* DEF_DOG_SPEED = "defaultDogSpeed";
     const char* DOG_SPEED = "dogSpeed";
+    const char* DEFAULT_BAG_CAPACITY = "defaultBagCapacity";
+    const char* BAG_CAPACITY = "bagCapacity";
     const char* MAP_NAME = "name";
 }
 
@@ -95,10 +97,12 @@ Offset Office::GetOffset() const noexcept {
     return offset_;
 }
 
-Map::Map(Id id, std::string name, double dog_speed) noexcept
+Map::Map(Id id, std::string name, double dog_speed,
+         std::size_t bag_capacity) noexcept
     : id_{std::move(id)}
     , name_{std::move(name)}
-    , dog_speed_{dog_speed} {
+    , dog_speed_{dog_speed}
+    , bag_capacity_{bag_capacity} {
 }
 
 const Map::Id& Map::GetId() const noexcept {
@@ -123,6 +127,10 @@ const Map::Offices& Map::GetOffices() const noexcept {
 
 double Map::GetDogSpeed() const noexcept {
     return dog_speed_;
+}
+
+std::size_t Map::GetBagCapacity() const noexcept {
+    return bag_capacity_;
 }
 
 std::size_t Map::GetLootTypeCount() const noexcept {

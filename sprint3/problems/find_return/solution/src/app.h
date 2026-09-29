@@ -15,6 +15,12 @@
 
 namespace app {
 
+struct LostObject {
+    std::uint64_t id;
+    std::size_t type;
+    model::Position position;
+};
+
 class Player {
 public:
     using Id = util::Tagged<std::uint64_t, Player>;
@@ -25,15 +31,21 @@ public:
     const Id& GetId() const noexcept;
     const model::Dog& GetDog() const noexcept;
     const model::Map& GetMap() const noexcept;
+    model::Position GetPreviousPosition() const noexcept;
+    const std::vector<LostObject>& GetBag() const noexcept;
 
     void Move(model::Direction direction) noexcept;
     void Stop() noexcept;
     void Tick(std::chrono::milliseconds time_delta) noexcept;
+    bool TryAddToBag(const LostObject& object);
+    void ReturnLoot() noexcept;
 
 private:
     Id id_;
     model::Dog dog_;
     std::shared_ptr<const model::Map> map_;
+    model::Position previous_position_;
+    std::vector<LostObject> bag_;
 };
 
 class Players {
@@ -76,18 +88,13 @@ private:
     std::mt19937_64 generator2_;
 };
 
-struct LostObject {
-    std::uint64_t id;
-    std::size_t type;
-    model::Position position;
-};
-
 class GameSession {
 public:
     GameSession(std::shared_ptr<const model::Map> map,
                 model::Game::LootGeneratorConfig config);
 
-    void Tick(std::chrono::milliseconds time_delta, unsigned looter_count);
+    void Tick(std::chrono::milliseconds time_delta,
+              const std::vector<Player*>& players);
     const std::vector<LostObject>& GetLostObjects() const noexcept;
 
 private:
