@@ -68,7 +68,13 @@ model::Game LoadGame(const std::filesystem::path& json_path,
         if (map_loot_types.empty()) {
             throw std::invalid_argument("Map must have at least one loot type");
         }
-        map.SetLootTypeCount(map_loot_types.size());
+        std::vector<model::LootValue> loot_values;
+        loot_values.reserve(map_loot_types.size());
+        for (const json::value& loot_type : map_loot_types) {
+            loot_values.push_back(json::value_to<model::LootValue>(
+                loot_type.as_object().at("value")));
+        }
+        map.SetLootValues(std::move(loot_values));
         if (loot_types) {
             loot_types->emplace(*id, map_loot_types);
         }

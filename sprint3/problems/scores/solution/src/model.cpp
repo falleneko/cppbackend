@@ -134,11 +134,19 @@ std::size_t Map::GetBagCapacity() const noexcept {
 }
 
 std::size_t Map::GetLootTypeCount() const noexcept {
-    return loot_type_count_;
+    return loot_values_.size();
+}
+
+LootValue Map::GetLootValue(std::size_t type) const noexcept {
+    return type < loot_values_.size() ? loot_values_[type] : 0;
 }
 
 void Map::SetLootTypeCount(std::size_t count) noexcept {
-    loot_type_count_ = count;
+    loot_values_.resize(count);
+}
+
+void Map::SetLootValues(std::vector<LootValue> values) noexcept {
+    loot_values_ = std::move(values);
 }
 
 Position Map::GetRandomRoadPosition() const {

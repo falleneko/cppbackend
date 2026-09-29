@@ -303,6 +303,7 @@ ApiHandler::HandlerResult ApiHandler::HandleGetGameState(
                 {"speed", json::array{speed.x, speed.y}},
                 {"dir", SerializeDirection(dog.GetDirection())},
                 {"bag", std::move(bag)},
+                {"score", map_player->GetScore()},
             });
     }
     json::object lost_objects;

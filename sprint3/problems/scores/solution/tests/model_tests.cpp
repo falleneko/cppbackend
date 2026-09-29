@@ -125,8 +125,10 @@ TEST_CASE("A player returns collected objects at an office") {
 TEST_CASE("A bag preserves collection order and respects map capacity") {
     auto map = std::make_shared<model::Map>(
         model::Map::Id{"first"}, "Test map", 1.0, 2);
+    map->SetLootValues({10, 20, 30});
     app::Player player{app::Player::Id{0}, "dog", {0.0, 0.0}, map};
 
+    CHECK(player.GetScore() == 0);
     CHECK(player.TryAddToBag({7, 1, {1.0, 0.0}}));
     CHECK(player.TryAddToBag({3, 2, {2.0, 0.0}}));
     CHECK_FALSE(player.TryAddToBag({9, 0, {3.0, 0.0}}));
@@ -136,4 +138,9 @@ TEST_CASE("A bag preserves collection order and respects map capacity") {
 
     player.ReturnLoot();
     CHECK(player.GetBag().empty());
+    CHECK(player.GetScore() == 50);
+
+    CHECK(player.TryAddToBag({11, 0, {3.0, 0.0}}));
+    player.ReturnLoot();
+    CHECK(player.GetScore() == 60);
 }

@@ -13,6 +13,7 @@ namespace model {
 
 using Dimension = int;
 using Coord = Dimension;
+using LootValue = std::uint64_t;
 
 namespace DATA_CONST {
 extern const char* START_X;
@@ -136,7 +137,9 @@ public:
     double GetDogSpeed() const noexcept;
     std::size_t GetBagCapacity() const noexcept;
     std::size_t GetLootTypeCount() const noexcept;
+    LootValue GetLootValue(std::size_t type) const noexcept;
     void SetLootTypeCount(std::size_t count) noexcept;
+    void SetLootValues(std::vector<LootValue> values) noexcept;
     Position GetRandomRoadPosition() const;
     Position GetFirstRoadPosition() const noexcept;
     Position GetBoundedPosition(Position from, Position to) const noexcept;
@@ -153,7 +156,7 @@ private:
     std::string name_;
     double dog_speed_ = 1.0;
     std::size_t bag_capacity_ = 3;
-    std::size_t loot_type_count_ = 0;
+    std::vector<LootValue> loot_values_;
     Roads roads_;
     Buildings buildings_;
 

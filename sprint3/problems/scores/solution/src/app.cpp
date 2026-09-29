@@ -97,6 +97,10 @@ const std::vector<LostObject>& Player::GetBag() const noexcept {
     return bag_;
 }
 
+Score Player::GetScore() const noexcept {
+    return score_;
+}
+
 void Player::Move(model::Direction direction) noexcept {
     dog_.SetMovement(direction, map_->GetDogSpeed());
 }
@@ -119,6 +123,9 @@ bool Player::TryAddToBag(const LostObject& object) {
 }
 
 void Player::ReturnLoot() noexcept {
+    for (const LostObject& object : bag_) {
+        score_ += map_->GetLootValue(object.type);
+    }
     bag_.clear();
 }
 

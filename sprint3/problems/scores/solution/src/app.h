@@ -15,6 +15,8 @@
 
 namespace app {
 
+using Score = std::uint64_t;
+
 struct LostObject {
     std::uint64_t id;
     std::size_t type;
@@ -33,6 +35,7 @@ public:
     const model::Map& GetMap() const noexcept;
     model::Position GetPreviousPosition() const noexcept;
     const std::vector<LostObject>& GetBag() const noexcept;
+    Score GetScore() const noexcept;
 
     void Move(model::Direction direction) noexcept;
     void Stop() noexcept;
@@ -46,6 +49,7 @@ private:
     std::shared_ptr<const model::Map> map_;
     model::Position previous_position_;
     std::vector<LostObject> bag_;
+    Score score_ = 0;
 };
 
 class Players {
