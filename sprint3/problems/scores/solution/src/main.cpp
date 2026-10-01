@@ -141,7 +141,7 @@ int main(int argc, const char* argv[]) {
         constexpr net::ip::port_type port = 8080;
         http_server::ServeHttp(ioc, {address, port}, logging_handler);
 
-        app_logging::Log(
+        app_logging::WriteLog(
             "server started"sv,
             {{"port", port}, {"address", address.to_string()}}
         );
@@ -150,9 +150,9 @@ int main(int argc, const char* argv[]) {
         RunWorkers(std::max(1u, num_threads), [&ioc] {
             ioc.run();
         });
-        app_logging::Log("server exited"sv, {{"code", 0}});
+        app_logging::WriteLog("server exited"sv, {{"code", 0}});
     } catch (const std::exception& ex) {
-        app_logging::Log(
+        app_logging::WriteLog(
             "server exited"sv,
             {{"code", EXIT_FAILURE}, {"exception", ex.what()}}
         );

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "logger.h"
+
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/strand.hpp>
@@ -7,6 +9,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <exception>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -56,7 +59,22 @@ private:
             last_tick_ = this_tick;
             try {
                 handler_(delta);
+            } catch (const std::exception& ex) {
+                app_logging::WriteLog(
+                    "ticker handler exception",
+                    {{"delta", delta.count()},
+                     {"type", "std"},
+                     {"exception", ex.what()}}
+                );
+                throw;
             } catch (...) {
+                app_logging::WriteLog(
+                    "ticker handler exception",
+                    {{"delta", delta.count()},
+                     {"type", "unknown"},
+                     {"exception", "unknown exception"}}
+                );
+                throw std::current_exception();
             }
             ScheduleTick();
         }

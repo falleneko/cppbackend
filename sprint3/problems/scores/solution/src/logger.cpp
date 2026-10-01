@@ -41,7 +41,7 @@ void InitBoostLog() {
     );
 }
 
-void Log(std::string_view message, json::value data) {
+void WriteLog(std::string_view message, json::value data) {
     BOOST_LOG_TRIVIAL(info)
         << logging::add_value(additional_data, std::move(data))
         << message;

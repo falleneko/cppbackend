@@ -7,6 +7,6 @@
 namespace app_logging {
 
 void InitBoostLog();
-void Log(std::string_view message, boost::json::value data);
+void WriteLog(std::string_view message, boost::json::value data);
 
 }  // namespace app_logging

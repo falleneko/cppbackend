@@ -35,7 +35,7 @@ public:
     template <typename Body, typename Allocator, typename Send>
     void operator()(http::request<Body, http::basic_fields<Allocator>>&& req,
                     const http_server::tcp::endpoint& endpoint, Send&& send) {
-        app_logging::Log("request received"sv,
+        app_logging::WriteLog("request received"sv,
                          {{"ip", endpoint.address().to_string()},
                           {"URI", std::string{req.target()}},
                           {"method", std::string{req.method_string()}}});
@@ -56,7 +56,7 @@ public:
                     content_type = std::string{it->value()};
                 }
 
-                app_logging::Log("response sent"sv,
+                app_logging::WriteLog("response sent"sv,
                                  {{"ip", endpoint.address().to_string()},
                                   {"response_time", response_time},
                                   {"code", response.result_int()},

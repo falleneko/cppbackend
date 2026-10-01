@@ -32,9 +32,9 @@ model::Game LoadGame(const std::filesystem::path& json_path,
     json::object config;
     try {
         config = json::parse(file).as_object();
-    } catch (...) {
-        std::cerr << "Unable to parse JSON" << std::endl;
-        throw std::current_exception();
+    } catch (const boost::system::system_error& error) {
+        std::cerr << "Unable to parse JSON: " << error.what() << std::endl;
+        throw;
     }
 
     const double default_dog_speed = config.contains(DC::DEF_DOG_SPEED)

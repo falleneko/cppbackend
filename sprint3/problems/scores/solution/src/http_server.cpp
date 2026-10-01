@@ -11,7 +11,7 @@ namespace http_server {
     SessionBase::~SessionBase() = default;
 
     void ReportError(beast::error_code ec, std::string_view what) {
-        app_logging::Log("error"sv, {
+        app_logging::WriteLog("error"sv, {
             {"code", ec.value()},
             {"text", ec.message()},
             {"where", what}
