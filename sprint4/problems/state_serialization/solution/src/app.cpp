@@ -77,6 +77,16 @@ Player::Player(Id id, std::string dog_name, model::Position dog_position,
     , previous_position_{dog_position} {
 }
 
+Player::Player(PlayerState state, std::shared_ptr<const model::Map> map)
+    : id_{state.id}
+    , dog_{model::Dog::Id{state.id}, std::move(state.name), state.position,
+           state.speed, state.direction}
+    , map_{std::move(map)}
+    , previous_position_{state.previous_position}
+    , bag_{std::move(state.bag)}
+    , score_{state.score} {
+}
+
 const Player::Id& Player::GetId() const noexcept {
     return id_;
 }
@@ -99,6 +109,20 @@ const std::vector<LostObject>& Player::GetBag() const noexcept {
 
 Score Player::GetScore() const noexcept {
     return score_;
+}
+
+PlayerState Player::GetState() const {
+    return {
+        *id_,
+        dog_.GetName(),
+        dog_.GetPosition(),
+        dog_.GetSpeed(),
+        dog_.GetDirection(),
+        *map_->GetId(),
+        previous_position_,
+        bag_,
+        score_,
+    };
 }
 
 void Player::Move(model::Direction direction) noexcept {
@@ -149,6 +173,26 @@ Player& Players::Add(std::string dog_name,
     return player;
 }
 
+Player& Players::Restore(PlayerState state,
+                         std::shared_ptr<const model::Map> map) {
+    if (!map) {
+        throw std::invalid_argument("Cannot restore a player without a map");
+    }
+    const Player::Id id{state.id};
+    if (FindById(id)) {
+        throw std::invalid_argument("Duplicate player id in saved state");
+    }
+    const model::Map::Id map_id = map->GetId();
+    Player& player = players_.emplace_back(std::move(state), std::move(map));
+    try {
+        players_by_map_[map_id].push_back(&player);
+    } catch (...) {
+        players_.pop_back();
+        throw;
+    }
+    return player;
+}
+
 void Players::Tick(std::chrono::milliseconds time_delta) noexcept {
     for (Player& player : players_) {
         player.Tick(time_delta);
@@ -163,6 +207,37 @@ const std::vector<Player*>& Players::GetPlayersOnMap(
         return it->second;
     }
     return no_players;
+}
+
+Player* Players::FindById(Player::Id id) noexcept {
+    for (Player& player : players_) {
+        if (player.GetId() == id) {
+            return &player;
+        }
+    }
+    return nullptr;
+}
+
+std::vector<PlayerState> Players::GetState() const {
+    std::vector<PlayerState> state;
+    state.reserve(players_.size());
+    for (const Player& player : players_) {
+        state.push_back(player.GetState());
+    }
+    return state;
+}
+
+std::uint64_t Players::GetNextPlayerId() const noexcept {
+    return next_player_id_;
+}
+
+void Players::SetNextPlayerId(std::uint64_t next_player_id) {
+    for (const Player& player : players_) {
+        if (*player.GetId() >= next_player_id) {
+            throw std::invalid_argument("Invalid next player id in saved state");
+        }
+    }
+    next_player_id_ = next_player_id;
 }
 
 PlayerTokens::PlayerTokens()
@@ -186,6 +261,12 @@ Token PlayerTokens::AddPlayer(Player& player) {
     }
 }
 
+void PlayerTokens::AddPlayer(Token token, Player& player) {
+    if (!token_to_player_.emplace(std::move(token), &player).second) {
+        throw std::invalid_argument("Duplicate player token in saved state");
+    }
+}
+
 Player* PlayerTokens::FindPlayerByToken(const Token& token) const noexcept {
     if (const auto it = token_to_player_.find(token);
         it != token_to_player_.end()) {
@@ -194,10 +275,35 @@ Player* PlayerTokens::FindPlayerByToken(const Token& token) const noexcept {
     return nullptr;
 }
 
+std::vector<TokenState> PlayerTokens::GetState() const {
+    std::vector<TokenState> state;
+    state.reserve(token_to_player_.size());
+    for (const auto& [token, player] : token_to_player_) {
+        state.push_back({*token, *player->GetId()});
+    }
+    return state;
+}
+
 GameSession::GameSession(std::shared_ptr<const model::Map> map,
                          model::Game::LootGeneratorConfig config)
     : map_{std::move(map)}
     , loot_generator_{config.period, config.probability} {
+}
+
+GameSession::GameSession(GameSessionState state,
+                         std::shared_ptr<const model::Map> map,
+                         model::Game::LootGeneratorConfig config)
+    : map_{std::move(map)}
+    , loot_generator_{config.period, config.probability}
+    , lost_objects_{std::move(state.lost_objects)}
+    , next_object_id_{state.next_object_id} {
+    loot_generator_.SetTimeWithoutLoot(
+        std::chrono::milliseconds{state.time_without_loot_ms});
+    for (const LostObject& object : lost_objects_) {
+        if (object.id >= next_object_id_) {
+            throw std::invalid_argument("Invalid next lost object id in saved state");
+        }
+    }
 }
 
 void GameSession::Tick(std::chrono::milliseconds time_delta,
@@ -247,6 +353,15 @@ void GameSession::Tick(std::chrono::milliseconds time_delta,
 
 const std::vector<LostObject>& GameSession::GetLostObjects() const noexcept {
     return lost_objects_;
+}
+
+GameSessionState GameSession::GetState() const {
+    return {
+        *map_->GetId(),
+        lost_objects_,
+        next_object_id_,
+        loot_generator_.GetTimeWithoutLoot().count(),
+    };
 }
 
 Application::Application(model::Game& game, bool randomize_spawn_points) noexcept
@@ -301,6 +416,68 @@ void Application::Tick(std::chrono::milliseconds time_delta) {
     for (auto& [map_id, session] : sessions_) {
         session->Tick(time_delta, players_.GetPlayersOnMap(map_id));
     }
+    if (listener_) {
+        listener_->OnTick(time_delta);
+    }
+}
+
+ApplicationState Application::GetState() const {
+    ApplicationState state;
+    state.next_player_id = players_.GetNextPlayerId();
+    state.players = players_.GetState();
+    state.tokens = player_tokens_.GetState();
+    state.sessions.reserve(sessions_.size());
+    for (const auto& [map_id, session] : sessions_) {
+        state.sessions.push_back(session->GetState());
+    }
+    return state;
+}
+
+void Application::RestoreState(ApplicationState state) {
+    if (!players_.GetState().empty() || !player_tokens_.GetState().empty()
+        || !sessions_.empty()) {
+        throw std::logic_error("Application state can only be restored at startup");
+    }
+
+    for (PlayerState& player_state : state.players) {
+        const auto map = game_.FindMap(model::Map::Id{player_state.map_id});
+        if (!map) {
+            throw std::invalid_argument("Unknown map in saved player state");
+        }
+        players_.Restore(std::move(player_state), map);
+    }
+    players_.SetNextPlayerId(state.next_player_id);
+
+    for (TokenState& token_state : state.tokens) {
+        Player* player = players_.FindById(Player::Id{token_state.player_id});
+        if (!player) {
+            throw std::invalid_argument("Unknown player in saved token state");
+        }
+        player_tokens_.AddPlayer(Token{std::move(token_state.token)}, *player);
+    }
+
+    for (GameSessionState& session_state : state.sessions) {
+        const model::Map::Id map_id{session_state.map_id};
+        const auto map = game_.FindMap(map_id);
+        if (!map) {
+            throw std::invalid_argument("Unknown map in saved session state");
+        }
+        auto session = std::make_unique<GameSession>(
+            std::move(session_state), map, game_.GetLootGeneratorConfig());
+        if (!sessions_.emplace(map_id, std::move(session)).second) {
+            throw std::invalid_argument("Duplicate map session in saved state");
+        }
+    }
+
+    for (const PlayerState& player_state : players_.GetState()) {
+        if (!sessions_.contains(model::Map::Id{player_state.map_id})) {
+            throw std::invalid_argument("Player session is missing in saved state");
+        }
+    }
+}
+
+void Application::SetListener(ApplicationListener* listener) noexcept {
+    listener_ = listener;
 }
 
 }  // namespace app

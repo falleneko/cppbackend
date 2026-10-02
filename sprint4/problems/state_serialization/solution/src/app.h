@@ -23,12 +23,50 @@ struct LostObject {
     model::Position position;
 };
 
+struct PlayerState {
+    std::uint64_t id = 0;
+    std::string name;
+    model::Position position;
+    model::Speed speed;
+    model::Direction direction = model::Direction::NORTH;
+    std::string map_id;
+    model::Position previous_position;
+    std::vector<LostObject> bag;
+    Score score = 0;
+};
+
+struct TokenState {
+    std::string token;
+    std::uint64_t player_id = 0;
+};
+
+struct GameSessionState {
+    std::string map_id;
+    std::vector<LostObject> lost_objects;
+    std::uint64_t next_object_id = 0;
+    std::int64_t time_without_loot_ms = 0;
+};
+
+struct ApplicationState {
+    std::uint64_t next_player_id = 0;
+    std::vector<PlayerState> players;
+    std::vector<TokenState> tokens;
+    std::vector<GameSessionState> sessions;
+};
+
+class ApplicationListener {
+public:
+    virtual void OnTick(std::chrono::milliseconds time_delta) = 0;
+    virtual ~ApplicationListener() = default;
+};
+
 class Player {
 public:
     using Id = util::Tagged<std::uint64_t, Player>;
 
     Player(Id id, std::string dog_name, model::Position dog_position,
            std::shared_ptr<const model::Map> map);
+    Player(PlayerState state, std::shared_ptr<const model::Map> map);
 
     const Id& GetId() const noexcept;
     const model::Dog& GetDog() const noexcept;
@@ -36,6 +74,7 @@ public:
     model::Position GetPreviousPosition() const noexcept;
     const std::vector<LostObject>& GetBag() const noexcept;
     Score GetScore() const noexcept;
+    PlayerState GetState() const;
 
     void Move(model::Direction direction) noexcept;
     void Stop() noexcept;
@@ -56,9 +95,14 @@ class Players {
 public:
     Player& Add(std::string dog_name, std::shared_ptr<const model::Map> map,
                 bool randomize_spawn_points);
+    Player& Restore(PlayerState state, std::shared_ptr<const model::Map> map);
     void Tick(std::chrono::milliseconds time_delta) noexcept;
     const std::vector<Player*>& GetPlayersOnMap(
         const model::Map::Id& map_id) const noexcept;
+    Player* FindById(Player::Id id) noexcept;
+    std::vector<PlayerState> GetState() const;
+    std::uint64_t GetNextPlayerId() const noexcept;
+    void SetNextPlayerId(std::uint64_t next_player_id);
 
 private:
     using MapIdHasher = util::TaggedHasher<model::Map::Id>;
@@ -81,7 +125,9 @@ public:
     PlayerTokens& operator=(const PlayerTokens&) = delete;
 
     Token AddPlayer(Player& player);
+    void AddPlayer(Token token, Player& player);
     Player* FindPlayerByToken(const Token& token) const noexcept;
+    std::vector<TokenState> GetState() const;
 
 private:
     Token GenerateToken();
@@ -96,10 +142,13 @@ class GameSession {
 public:
     GameSession(std::shared_ptr<const model::Map> map,
                 model::Game::LootGeneratorConfig config);
+    GameSession(GameSessionState state, std::shared_ptr<const model::Map> map,
+                model::Game::LootGeneratorConfig config);
 
     void Tick(std::chrono::milliseconds time_delta,
               const std::vector<Player*>& players);
     const std::vector<LostObject>& GetLostObjects() const noexcept;
+    GameSessionState GetState() const;
 
 private:
     std::shared_ptr<const model::Map> map_;
@@ -124,6 +173,9 @@ public:
     const std::vector<LostObject>& GetLostObjectsOnMap(
         const model::Map::Id& map_id) const noexcept;
     void Tick(std::chrono::milliseconds time_delta);
+    ApplicationState GetState() const;
+    void RestoreState(ApplicationState state);
+    void SetListener(ApplicationListener* listener) noexcept;
 
 private:
     model::Game& game_;
@@ -132,6 +184,7 @@ private:
     PlayerTokens player_tokens_;
     std::unordered_map<model::Map::Id, std::unique_ptr<GameSession>,
                        util::TaggedHasher<model::Map::Id>> sessions_;
+    ApplicationListener* listener_ = nullptr;
 };
 
 }  // namespace app

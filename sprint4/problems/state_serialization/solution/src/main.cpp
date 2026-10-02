@@ -5,6 +5,7 @@
 #include <boost/program_options.hpp>
 
 #include <chrono>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -18,6 +19,7 @@
 #include "json_loader.h"
 #include "logger.h"
 #include "request_handler.h"
+#include "state_serialization.h"
 #include "ticker.h"
 
 using namespace std::literals;
@@ -30,12 +32,16 @@ struct Args {
     std::string config_file;
     std::string www_root;
     std::optional<std::chrono::milliseconds> tick_period;
+    std::optional<std::filesystem::path> state_file;
+    std::optional<std::chrono::milliseconds> save_state_period;
     bool randomize_spawn_points = false;
 };
 
 std::optional<Args> ParseCommandLine(int argc, const char* argv[]) {
     Args args;
     std::int64_t tick_period = 0;
+    std::int64_t save_state_period = 0;
+    std::string state_file;
 
     po::options_description options{"Allowed options"};
     options.add_options()
@@ -49,6 +55,12 @@ std::optional<Args> ParseCommandLine(int argc, const char* argv[]) {
         ("www-root,w",
          po::value<std::string>(&args.www_root)->value_name("dir")->required(),
          "set static files root")
+        ("state-file",
+         po::value<std::string>(&state_file)->value_name("file"),
+         "set game state file path")
+        ("save-state-period",
+         po::value<std::int64_t>(&save_state_period)->value_name("milliseconds"),
+         "set automatic game state save period")
         ("randomize-spawn-points",
          po::bool_switch(&args.randomize_spawn_points),
          "spawn dogs at random positions");
@@ -67,6 +79,21 @@ std::optional<Args> ParseCommandLine(int argc, const char* argv[]) {
                 po::validation_error::invalid_option_value, "tick-period");
         }
         args.tick_period = std::chrono::milliseconds{tick_period};
+    }
+    if (variables.contains("state-file")) {
+        if (state_file.empty()) {
+            throw po::validation_error(
+                po::validation_error::invalid_option_value, "state-file");
+        }
+        args.state_file = std::filesystem::path{std::move(state_file)};
+    }
+    if (args.state_file && variables.contains("save-state-period")) {
+        if (save_state_period <= 0) {
+            throw po::validation_error(
+                po::validation_error::invalid_option_value,
+                "save-state-period");
+        }
+        args.save_state_period = std::chrono::milliseconds{save_state_period};
     }
     return args;
 }
@@ -118,6 +145,19 @@ int main(int argc, const char* argv[]) {
 
         // 4. Связываем HTTP-слой с моделью через фасад приложения
         app::Application application{game, args->randomize_spawn_points};
+        std::unique_ptr<serialization::StateSerializer> state_serializer;
+        std::unique_ptr<serialization::SerializingListener> serializing_listener;
+        if (args->state_file) {
+            state_serializer = std::make_unique<serialization::StateSerializer>(
+                application, *args->state_file);
+            state_serializer->Restore();
+            if (args->save_state_period) {
+                serializing_listener
+                    = std::make_unique<serialization::SerializingListener>(
+                        *state_serializer, *args->save_state_period);
+                application.SetListener(serializing_listener.get());
+            }
+        }
         http_handler::ApiHandler api_handler{application, !args->tick_period,
                                              &loot_types};
         auto api_strand = net::make_strand(ioc);
@@ -150,6 +190,9 @@ int main(int argc, const char* argv[]) {
         RunWorkers(std::max(1u, num_threads), [&ioc] {
             ioc.run();
         });
+        if (state_serializer) {
+            state_serializer->Save();
+        }
         app_logging::WriteLog("server exited"sv, {{"code", 0}});
     } catch (const std::exception& ex) {
         app_logging::WriteLog(

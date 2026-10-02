@@ -1,6 +1,7 @@
 #pragma once
 #include <chrono>
 #include <functional>
+#include <stdexcept>
 
 namespace loot_gen {
 
@@ -34,6 +35,17 @@ public:
      * looter_count - количество мародёров на карте
      */
     unsigned Generate(TimeInterval time_delta, unsigned loot_count, unsigned looter_count);
+
+    TimeInterval GetTimeWithoutLoot() const noexcept {
+        return time_without_loot_;
+    }
+
+    void SetTimeWithoutLoot(TimeInterval elapsed) {
+        if (elapsed < TimeInterval::zero()) {
+            throw std::invalid_argument("Elapsed loot generation time must not be negative");
+        }
+        time_without_loot_ = elapsed;
+    }
 
 private:
     static double DefaultGenerator() noexcept {

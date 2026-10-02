@@ -169,6 +169,8 @@ public:
     using Id = util::Tagged<std::uint64_t, Dog>;
 
     Dog(Id id, std::string name, Position position);
+    Dog(Id id, std::string name, Position position, Speed speed,
+        Direction direction);
 
     const Id& GetId() const noexcept;
     const std::string& GetName() const noexcept;

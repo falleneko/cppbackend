@@ -27,6 +27,13 @@ add_library(game_model STATIC
 )
 target_link_libraries(game_model PUBLIC collision_detection_lib)
 
+add_library(state_serialization_lib STATIC
+	src/model_serialization.h
+	src/state_serialization.cpp
+	src/state_serialization.h
+)
+target_link_libraries(state_serialization_lib PUBLIC game_model CONAN_PKG::boost)
+
 add_executable(game_server
 	src/main.cpp
 	src/api_handler.cpp
@@ -43,7 +50,7 @@ add_executable(game_server
 	src/request_handler.cpp
 	src/request_handler.h
 )
-target_link_libraries(game_server PRIVATE game_model)
+target_link_libraries(game_server PRIVATE game_model state_serialization_lib)
 
 add_executable(game_server_tests
 	tests/loot_generator_tests.cpp

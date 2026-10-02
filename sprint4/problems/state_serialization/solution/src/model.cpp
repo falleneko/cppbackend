@@ -281,6 +281,15 @@ Dog::Dog(Id id, std::string name, Position position)
     , position_{position} {
 }
 
+Dog::Dog(Id id, std::string name, Position position, Speed speed,
+         Direction direction)
+    : id_{id}
+    , name_{std::move(name)}
+    , position_{position}
+    , speed_{speed}
+    , direction_{direction} {
+}
+
 const Dog::Id& Dog::GetId() const noexcept {
     return id_;
 }
